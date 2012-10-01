@@ -15,7 +15,9 @@ public class LibraryModel {
     private JFrame dialogParent;
 
     public LibraryModel(JFrame parent, String userid, String password) {
-	dialogParent = parent;
+    	//connect to database
+    	System.out.println("I am tring to use github");
+    	dialogParent = parent;
     }
 
     public String bookLookup(int isbn) {
