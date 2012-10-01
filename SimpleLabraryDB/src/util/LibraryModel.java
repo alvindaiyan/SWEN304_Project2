@@ -16,7 +16,7 @@ public class LibraryModel {
 
     public LibraryModel(JFrame parent, String userid, String password) {
     	//connect to database
-    	System.out.println("I am tring to use github");
+    	System.out.println("I am tring to use github!!!");
     	dialogParent = parent;
     }
 
