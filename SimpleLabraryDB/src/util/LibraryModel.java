@@ -11,6 +11,7 @@ import javax.swing.*;
 
 import java.sql.DriverManager;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
 
@@ -46,11 +47,52 @@ public class LibraryModel {
     }
 
     public String bookLookup(int isbn) {
-	return "Lookup Book Stub";
+    	
+    	
+    	String result = "=============================\nBook Lookup Result:\n";
+    	
+    	try {
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery("select * from book where book.isbn = " + isbn);
+			
+			while(rs.next()){
+				result += "book id: " + rs.getInt(1) + "\nbook name: " 
+						+ rs.getString("title") + "\nedition number: " + rs.getString("edition_no")
+						+ "\nnumber of copy: " + rs.getString("numofcop")
+						+ "\nnumber left: " + rs.getString("numleft")
+						+ "\n=============================\n";
+				
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}    	
+    	
+    	return result;
     }
 
     public String showCatalogue() {
-	return "Show Catalogue Stub";
+    		
+    	String result = "Catalogue:\n";
+    	
+    	try {
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery("select * from book");
+			
+			while(rs.next()){
+				result += "book id: " + rs.getInt(1) + "\nbook name: " 
+						+ rs.getString("title") + "\nedition number: " + rs.getString("edition_no")
+						+ "\nnumber of copy: " + rs.getString("numofcop")
+						+ "\nnumber left: " + rs.getString("numleft")
+						+ "\n=============================\n";
+				
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}    	
+    	
+    	return result;
     }
 
     public String showLoanedBooks() {
@@ -62,7 +104,25 @@ public class LibraryModel {
     }
 
     public String showAllAuthors() {
-	return "Show All Authors Stub";
+    	
+    	String result = "Authors List:\n";
+    	
+    	try {
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery("select * from author");
+			
+			while(rs.next()){
+				result += "authorid: " + rs.getInt(1) + "\nauthor name: " 
+						+ rs.getString("name") + rs.getString("surname") 
+						+ "\n=============================\n";
+				
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}    	
+    	
+    	return result;
     }
 
     public String showCustomer(int customerID) {

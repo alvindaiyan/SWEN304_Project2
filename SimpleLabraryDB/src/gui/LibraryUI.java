@@ -651,6 +651,9 @@ class AuthDialog extends JDialog {
 	inputPanel.add(usernameTf);
 	inputPanel.add(passwdTf);
 
+	usernameTf.setText("daiyan");
+	passwdTf.setText("1qaz2wsx");
+	
 	Box buttonPane = new Box(X_AXIS);
 	buttonPane.add(Box.createHorizontalGlue());
 	buttonPane.add(okButton);
