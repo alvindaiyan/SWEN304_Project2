@@ -1,8 +1,8 @@
 package util;
 /*
  * LibraryModel.java
- * Author:
- * Created on:
+ * Author: Yan
+ * Created on: postgreSql
  */
 
 
@@ -37,32 +37,27 @@ public class LibraryModel {
 		} catch (SQLException e) {
 			// TODO cannot connect and print out the message
 			e.printStackTrace();
-		}
-    	
-    	
-    	
-    	
-    	//System.out.println("I am tring to use github!!!");
+		} 
     	dialogParent = parent;
     }
 
-    public String bookLookup(int isbn) {
-    	
-    	
-    	String result = "=============================\nBook Lookup Result:\n";
+    boolean bookLookup = false;
+    public String bookLookup(int isbn) {    	
+    	String result = "Book Lookup Result:\n";
     	
     	try {
 			Statement st = con.createStatement();
 			ResultSet rs = st.executeQuery("select * from book where book.isbn = " + isbn);
 			
-			while(rs.next()){
+			if(rs.next()){
 				result += "book id: " + rs.getInt(1) + "\nbook name: " 
 						+ rs.getString("title") + "\nedition number: " + rs.getString("edition_no")
 						+ "\nnumber of copy: " + rs.getString("numofcop")
 						+ "\nnumber left: " + rs.getString("numleft")
 						+ "\n=============================\n";
-				
-			}
+				bookLookup = true;
+			}else {bookLookup = false; result += "No Such Book";}	
+			
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -71,13 +66,12 @@ public class LibraryModel {
     	return result;
     }
 
-    public String showCatalogue() {
-    		
+    public String showCatalogue() {    		
     	String result = "Catalogue:\n";
-    	
+    	boolean empty = true;
     	try {
 			Statement st = con.createStatement();
-			ResultSet rs = st.executeQuery("select * from book");
+			ResultSet rs = st.executeQuery("select * from book");			
 			
 			while(rs.next()){
 				result += "book id: " + rs.getInt(1) + "\nbook name: " 
@@ -85,26 +79,62 @@ public class LibraryModel {
 						+ "\nnumber of copy: " + rs.getString("numofcop")
 						+ "\nnumber left: " + rs.getString("numleft")
 						+ "\n=============================\n";
-				
+				empty = false;
 			}
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}    	
     	
-    	return result;
+    	return empty?result+"no such result":result;
     }
 
     public String showLoanedBooks() {
-	return "Show Loaned Books Stub";
+    	String result = "Loaned Books:\n";
+    	boolean empty = true;
+    	try {
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery("select b.isbn, b.title, " +
+						"b.edition_no, b.numofcop, numleft from book b, " +
+						"cust_book c where c.isbn = b.isbn;");			
+			
+			
+			while(rs.next()){
+				result += "book isbn: " + rs.getInt(1) + "\nbook name: " 
+						+ rs.getString("title") + "\nedition number: " + rs.getString("edition_no")
+						+ "\nnumber of copy: " + rs.getString("numofcop")
+						+ "\nnumber left: " + rs.getString("numleft")
+						+ "\n=============================\n";
+				empty = false;
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}    	
+    	
+    	return empty?result+"no Loaned Books":result;
     }
 
     public String showAuthor(int authorID) {
-	return "Show Author Stub";
+    	String result = "Auhtor Lookup Result:\n";
+    	
+    	try {
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery("select * from author where author.authorid = " + authorID);
+			
+			if(rs.next())
+				result += "authorid: " + rs.getInt(1) + "\nauthor name: " 
+						+ rs.getString("name") + rs.getString("surname") 
+						+ "\n=============================\n";
+			else result += "No Such Author";				
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}    	
+    	
+    	return result;
     }
 
-    public String showAllAuthors() {
-    	
+    public String showAllAuthors() {    	
     	String result = "Authors List:\n";
     	
     	try {
@@ -125,23 +155,99 @@ public class LibraryModel {
     	return result;
     }
 
+    boolean findCustomer = false;
     public String showCustomer(int customerID) {
-	return "Show Customer Stub";
+    	String result = "Customer Search Result:\n";
+    	
+    	findCustomer = false;
+    	try {
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery("select * from customer where customer.customerid =" +customerID);
+			
+			if(rs.next()){
+				result += "customer id: " + rs.getInt(1) + "\ncustomer name: " 
+						+ rs.getString("f_name") + rs.getString("l_name") 
+						+ "\ncity: " + rs.getString("city") 
+						+ "\n=============================\n";
+				findCustomer = true;
+			} else{result += "No Such Customer";}
+			
+			
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}    	
+    	
+    	return result;
     }
 
     public String showAllCustomers() {
-	return "Show All Customers Stub";
+    	String result = "Customers List:\n";
+    	
+    	try {
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery("select * from customer");
+			
+			while(rs.next()){
+				result += "customer id: " + rs.getInt(1) + "\ncustomer name: " 
+						+ rs.getString("f_name") + rs.getString("l_name") 
+						+ "\ncity: " + rs.getString("city") 
+						+ "\n=============================\n";
+				
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}    	
+    	
+    	return result;
     }
 
     public String borrowBook(int isbn, int customerID,
 			     int day, int month, int year) {
-	return "Borrow Book Stub";
+    	// identify customer by id
+    	showCustomer(customerID);
+    	if(!findCustomer){
+    		return "No such customer";
+    	}   	
+    	
+    	// identify the book
+    	bookLookup(isbn);
+    	if(!bookLookup){return "No such book";}
+    	
+    	// validate the copy left is bigger than 1
+    	Statement smt;
+		try {
+			smt = con.createStatement();
+			ResultSet rs = smt.executeQuery("select numleft from book where isbn = " + isbn);
+	    	rs.next();
+	    	if(rs.getInt(1) < 1){
+	    		return "No more availabe copy for book: " + isbn;
+	    	}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+    	
+    	// update the cust_book by insert a tuple
+    	
+		
+		
+    	// update the book table by decrease the number left
+    	
+    	
+    	return "Borrow Book Stub";
     }
 
     public String returnBook(int isbn, int customerid) {
-	return "Return Book Stub";
+    	return "Return Book Stub";
     }
 
     public void closeDBConnection() {
+    	try {
+			con.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 }
