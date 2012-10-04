@@ -203,8 +203,8 @@ public class LibraryModel {
     	return result;
     }
 
-    public String borrowBook(int isbn, int customerID,
-			     int day, int month, int year) {
+    public String borrowBook(int isbn, int customerID, int day, int month, int year) {
+    	
     	// identify customer by id
     	showCustomer(customerID);
     	if(!findCustomer){
@@ -217,11 +217,13 @@ public class LibraryModel {
     	
     	// validate the copy left is bigger than 1
     	Statement smt;
+    	int numLeft = -1;
 		try {
 			smt = con.createStatement();
 			ResultSet rs = smt.executeQuery("select numleft from book where isbn = " + isbn);
 	    	rs.next();
-	    	if(rs.getInt(1) < 1){
+	    	numLeft = rs.getInt(1);
+	    	if(numLeft < 1){
 	    		return "No more availabe copy for book: " + isbn;
 	    	}
 		} catch (SQLException e) {
@@ -229,16 +231,35 @@ public class LibraryModel {
 		}
     	
     	// update the cust_book by insert a tuple
-    	
+		try {
+			smt = con.createStatement();
+			int rs = smt.executeUpdate( "insert into cust_book values (" + isbn +",date(\'"
+					+ year + "-" + month + "-" + day + "\')," + customerID +")");
+			
+			if(rs == 0){
+				return "Insert fail";
+			}
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
 		
 		
-    	// update the book table by decrease the number left
-    	
-    	
-    	return "Borrow Book Stub";
+		// update the book table by decrease the number left	
+		try {
+			smt = con.createStatement();
+			int r = smt.executeUpdate("update book set numleft = "+ (numLeft - 1) +" where isbn = " + isbn);
+			if(r == 0){return "update failed";}		
+			
+			return bookLookup(isbn);
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}    	
+    	return "Not successfully update the database for borrow.";
     }
 
     public String returnBook(int isbn, int customerid) {
+    	
     	return "Return Book Stub";
     }
 
