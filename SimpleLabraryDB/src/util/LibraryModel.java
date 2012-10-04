@@ -35,7 +35,6 @@ public class LibraryModel {
     	try {
 			con = DriverManager.getConnection(url, userid, password);
 		} catch (SQLException e) {
-			// TODO cannot connect and print out the message
 			e.printStackTrace();
 		} 
     	dialogParent = parent;
@@ -44,23 +43,34 @@ public class LibraryModel {
     boolean bookLookup = false;
     public String bookLookup(int isbn) {    	
     	String result = "Book Lookup Result:\n";
-    	
+    	// select a.name from book_author ba, author a  where ba.isbn = 9999 and a.authorid = ba.authorid order by authorseqno;
+
     	try {
 			Statement st = con.createStatement();
+			Statement st2 = con.createStatement();
 			ResultSet rs = st.executeQuery("select * from book where book.isbn = " + isbn);
-			
+			ResultSet rsA = st2.executeQuery("select a.name, a.surname, ba.authorseqno from book_author ba, " +
+					"author a  where ba.isbn =" + isbn + "and a.authorid = ba.authorid " +
+					"order by authorseqno;");
 			if(rs.next()){
 				result += "book id: " + rs.getInt(1) + "\nbook name: " 
 						+ rs.getString("title") + "\nedition number: " + rs.getString("edition_no")
 						+ "\nnumber of copy: " + rs.getString("numofcop")
-						+ "\nnumber left: " + rs.getString("numleft")
-						+ "\n=============================\n";
+						+ "\nnumber left: " + rs.getString("numleft");
+				result += "\nauthors: \n";
+				while(rsA.next())
+					result += rsA.getInt(3) + ". " + rsA.getString("name") + rsA.getString("surname")+"\n";
 				bookLookup = true;
 			}else {bookLookup = false; result += "No Such Book";}	
 			
 			
 		} catch (SQLException e) {
-			e.printStackTrace();
+			int n = JOptionPane.showConfirmDialog(
+				    dialogParent,
+				    "Confirmation",
+				    e.getMessage(),
+				    JOptionPane.YES_NO_OPTION);
+			
 		}    	
     	
     	return result;
@@ -128,7 +138,11 @@ public class LibraryModel {
 						+ "\n=============================\n";
 			else result += "No Such Author";				
 		} catch (SQLException e) {
-			e.printStackTrace();
+			int n = JOptionPane.showConfirmDialog(
+				    dialogParent,
+				    "Confirmation",
+				    e.getMessage(),
+				    JOptionPane.YES_NO_OPTION);
 		}    	
     	
     	return result;
@@ -149,6 +163,11 @@ public class LibraryModel {
 			}
 			
 		} catch (SQLException e) {
+			int n = JOptionPane.showConfirmDialog(
+				    dialogParent,
+				    "Confirmation",
+				    e.getMessage(),
+				    JOptionPane.YES_NO_OPTION);
 			e.printStackTrace();
 		}    	
     	
@@ -175,6 +194,11 @@ public class LibraryModel {
 			
 			
 		} catch (SQLException e) {
+			int n = JOptionPane.showConfirmDialog(
+				    dialogParent,
+				    "Confirmation",
+				    e.getMessage(),
+				    JOptionPane.YES_NO_OPTION);
 			e.printStackTrace();
 		}    	
     	
@@ -227,11 +251,26 @@ public class LibraryModel {
 	    		return "No more availabe copy for book: " + isbn;
 	    	}
 		} catch (SQLException e) {
+			JOptionPane.showConfirmDialog(
+				    dialogParent,
+				    "Confirmation",
+				    e.getMessage(),
+				    JOptionPane.YES_NO_OPTION);
 			e.printStackTrace();
 		}
     	
     	// update the cust_book by insert a tuple
 		try {
+			
+			// confirm panel
+			int n = JOptionPane.showConfirmDialog(
+				    dialogParent,
+				    "Confirmation",
+				    "Are you sure borrow this book?",
+				    JOptionPane.YES_NO_OPTION);
+			
+			if(n == 1){return "transaction cancelled";}
+			
 			smt = con.createStatement();
 			int rs = smt.executeUpdate( "insert into cust_book values (" + isbn +",date(\'"
 					+ year + "-" + month + "-" + day + "\')," + customerID +")");
@@ -240,7 +279,8 @@ public class LibraryModel {
 				return "Insert fail";
 			}
 		} catch (SQLException e1) {
-			e1.printStackTrace();
+			if(e1.getMessage().equals("ERROR: duplicate key value violates unique constraint \"cust_book_pkey\""))
+				return "You have borrowed the book.";
 		}
 		
 		
@@ -267,7 +307,6 @@ public class LibraryModel {
     	try {
 			con.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
