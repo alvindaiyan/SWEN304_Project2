@@ -43,13 +43,13 @@ public class LibraryModel {
     boolean bookLookup = false;
     public String bookLookup(int isbn) {    	
     	String result = "Book Lookup Result:\n";
-    	// select a.name from book_author ba, author a  where ba.isbn = 9999 and a.authorid = ba.authorid order by authorseqno;
 
     	try {
 			Statement st = con.createStatement();
 			Statement st2 = con.createStatement();
 			ResultSet rs = st.executeQuery("select * from book where book.isbn = " + isbn);
-			ResultSet rsA = st2.executeQuery("select a.name, a.surname, ba.authorseqno from book_author ba, " +
+			ResultSet rsA = st2.executeQuery("select a.name, a.surname, " +
+					"ba.authorseqno from book_author ba, " +
 					"author a  where ba.isbn =" + isbn + "and a.authorid = ba.authorid " +
 					"order by authorseqno;");
 			if(rs.next()){
@@ -59,7 +59,8 @@ public class LibraryModel {
 						+ "\nnumber left: " + rs.getString("numleft");
 				result += "\nauthors: \n";
 				while(rsA.next())
-					result += rsA.getInt(3) + ". " + rsA.getString("name") + rsA.getString("surname")+"\n";
+					result += rsA.getInt("authorseqno") + ". " + rsA.getString("name") 
+							+ rsA.getString("surname")+"\n";
 				bookLookup = true;
 			}else {bookLookup = false; result += "No Such Book";}	
 			
@@ -130,7 +131,8 @@ public class LibraryModel {
     	
     	try {
 			Statement st = con.createStatement();
-			ResultSet rs = st.executeQuery("select * from author where author.authorid = " + authorID);
+			ResultSet rs = st.executeQuery("select * from author where author.authorid = " + 
+						authorID);
 			
 			if(rs.next())
 				result += "authorid: " + rs.getInt(1) + "\nauthor name: " 
@@ -181,7 +183,8 @@ public class LibraryModel {
     	findCustomer = false;
     	try {
 			Statement st = con.createStatement();
-			ResultSet rs = st.executeQuery("select * from customer where customer.customerid =" +customerID);
+			ResultSet rs = st.executeQuery("select * from customer where customer.customer" +
+					"id =" +customerID);
 			
 			if(rs.next()){
 				result += "customer id: " + rs.getInt(1) + "\ncustomer name: " 
@@ -244,7 +247,7 @@ public class LibraryModel {
     	int numLeft = -1;
 		try {
 			smt = con.createStatement();
-			ResultSet rs = smt.executeQuery("select numleft from book where isbn = " + isbn);
+			ResultSet rs = smt.executeQuery("select numleft from book where isbn = " + isbn + "for update");
 	    	rs.next();
 	    	numLeft = rs.getInt(1);
 	    	if(numLeft < 1){
@@ -260,34 +263,35 @@ public class LibraryModel {
 		}
     	
     	// update the cust_book by insert a tuple
-		try {
-			
-			// confirm panel
-			int n = JOptionPane.showConfirmDialog(
-				    dialogParent,
-				    "Confirmation",
-				    "Are you sure borrow this book?",
-				    JOptionPane.YES_NO_OPTION);
-			
-			if(n == 1){return "transaction cancelled";}
-			
+		try {			
 			smt = con.createStatement();
 			int rs = smt.executeUpdate( "insert into cust_book values (" + isbn +",date(\'"
 					+ year + "-" + month + "-" + day + "\')," + customerID +")");
-			
+
+					
 			if(rs == 0){
 				return "Insert fail";
 			}
 		} catch (SQLException e1) {
-			if(e1.getMessage().equals("ERROR: duplicate key value violates unique constraint \"cust_book_pkey\""))
+			if(e1.getMessage().equals("ERROR: duplicate key value violates " +
+					"unique constraint \"cust_book_pkey\""))
 				return "You have borrowed the book.";
 		}
 		
 		
 		// update the book table by decrease the number left	
 		try {
+			// confirm panel
+			int n = JOptionPane.showConfirmDialog(
+					dialogParent,
+					"Confirmation",
+					"Blocked the tuple, Are you sure borrow this book?",
+					JOptionPane.YES_NO_OPTION);
+							
+			if(n == 1){return "transaction cancelled";}
 			smt = con.createStatement();
-			int r = smt.executeUpdate("update book set numleft = "+ (numLeft - 1) +" where isbn = " + isbn);
+			int r = smt.executeUpdate("update book set numleft = "+ (numLeft - 1) +
+					" where isbn = " + isbn);
 			if(r == 0){return "update failed";}		
 			
 			return bookLookup(isbn);
@@ -299,8 +303,51 @@ public class LibraryModel {
     }
 
     public String returnBook(int isbn, int customerid) {
-    	
-    	return "Return Book Stub";
+    	try {
+		    	// identify the customerid
+		    	showCustomer(customerid);
+		    	if(!findCustomer){
+		    		return "No such customer";
+		    	}
+		    	
+		    	
+		    	// identify the isbn and validate whether the book is borrowed by the customer
+		    	bookLookup(isbn);
+		    	if(!bookLookup){return "No such book";}
+		    	
+		    	Statement smt;
+				
+					smt = con.createStatement();
+					ResultSet rs = smt.executeQuery("select * from cust_book where isbn =" +
+			    			 isbn + " and customerid = " +
+			    			customerid + "for update");
+					if(!rs.next()){return "You did not borrow this book!";}
+		
+	    	//synchronized(the book){
+		    	// delete the book from cust_book 
+		    	smt = con.createStatement();
+		    	int result = smt.executeUpdate("delete from cust_book where isbn = " + isbn  + " and customerid = " + customerid);
+		    	if(result == 0){ return "delete from the cust_book table fail";}
+		    	
+		    	// update the book table by increase the numleft
+		    	smt = con.createStatement();
+				ResultSet rsforNum = smt.executeQuery("select numleft from book where isbn = " + isbn);
+		    	rsforNum.next();
+		    	int numLeft = rsforNum.getInt(1);
+		
+		    	smt = con.createStatement();
+				int rst = smt.executeUpdate("update book set numleft = "+ (numLeft + 1) +
+						" where isbn = " + isbn);
+				
+				if(rst == 0){
+					return "update fail";
+				}
+	    	//}
+    	} catch (SQLException e) {
+			e.printStackTrace();
+				return "transaction failed";
+		}    	
+    	return "Return Book Successfully";
     }
 
     public void closeDBConnection() {
